@@ -1,0 +1,24 @@
+#!/bin/bash
+
+FILE_DATE=`date +"%Y%m%d%H%M%S"`
+DB_NAME=<%= @db_name %>
+BACKUP_DIR=<%= @backup_dir %>
+S3_DIR=<%= @s3_path %>
+
+echo "** Backing up $DB_NAME database - $FILE_DATE"
+T="$(date +%s)"
+
+# Extract dump file from production database.
+pg_dump --clean $DB_NAME | gzip > $BACKUP_DIR/$DB_NAME-$FILE_DATE.sql.gz
+
+# Upload to S3.
+s3cmd put $BACKUP_DIR/$DB_NAME-$FILE_DATE.sql.gz $S3_DIR
+
+# Remove local copy.
+rm -f $BACKUP_DIR/$DB_NAME-$FILE_DATE.sql.gz
+
+# Perform VACUUM ANALYZE on database.
+psql -d $DB_NAME -c "VACUUM ANALYZE;"
+
+T="$(($(date +%s)-T))"
+echo "** Backup of $DB_NAME completed in ${T} seconds."

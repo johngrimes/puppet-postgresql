@@ -1,0 +1,22 @@
+#!/bin/bash
+
+DB_NAME=<%= @db_name %>
+BACKUP_DIR=<%= @backup_dir %>
+
+echo "** Restoring $DB_NAME database - $1"
+T="$(date +%s)"
+
+# Extract specified dump file from archive.
+cd $BACKUP_DIR && gunzip -c $1 > restore.sql
+
+# Load dump file into production database.
+psql $DB_NAME < $BACKUP_DIR/restore.sql
+
+# Remove extracted dump file.
+rm $BACKUP_DIR/restore.sql
+
+# Perform VACUUM ANALYZE on database.
+psql -d $DB_NAME -c "VACUUM ANALYZE;"
+
+T="$(($(date +%s)-T))"
+echo "** Restore of $DB_NAME ($1) completed in ${T} seconds."
