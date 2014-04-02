@@ -13,7 +13,7 @@ class postgresql (
   $pid_file = '/var/run/postgresql/9.1-main.pid'
   $listen_port = 5432
 
-  file { [$pg_dir, $data_dir]:
+  file { $pg_dir:
     ensure  => directory,
     owner   => 'postgres',
     group   => 'postgres',
@@ -21,31 +21,38 @@ class postgresql (
     require => File['/data']
   }
 
-  package { 'postgresql-9.1':
-    ensure => present,
-    notify => [
+  file { $data_dir:
+    ensure  => directory,
+    owner   => 'postgres',
+    group   => 'postgres',
+    mode    => '600',
+    require => File['/data'],
+    notify  => [
       Exec['postgresql-stop'],
       Exec['postgresql-initdb']
     ]
   }
+
+  package { 'postgresql-9.1': ensure => present }
   package { 'postgresql-server-dev-9.1': ensure => present }
 
   sysctl::value { 'kernel.shmmax': value => $shmmax }
 
   exec { 'postgresql-stop':
     command     => '/etc/init.d/postgresql stop',
-    refreshonly => true
+    refreshonly => true,
+    require     => Package['postgresql-9.1']
   }
 
   exec { 'postgresql-initdb':
-    command     => "/usr/lib/postgresql/9.1/bin/initdb -D ${data_dir} --locale en_AU.UTF-8",
+    command     => "rm -rf ${data_dir}/* && /usr/lib/postgresql/9.1/bin/initdb -D ${data_dir} --locale en_AU.UTF-8",
     user        => 'postgres',
     require     => [
       Package['postgresql-9.1'],
       File[$data_dir]
     ],
     refreshonly => true,
-    notify      => File['postgresql.conf']
+    notify      => File['pg_hba.conf']
   }
 
   service { 'postgresql':
@@ -78,10 +85,7 @@ class postgresql (
     owner   => 'postgres',
     group   => 'postgres',
     mode    => '640',
-    require => [
-      Package['postgresql-9.1'],
-      Exec['postgresql-initdb']
-    ],
+    require => File[$data_dir],
     notify  => Service['postgresql']
   }
 
