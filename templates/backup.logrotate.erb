@@ -1,9 +1,9 @@
 <%= @log_dir %>/*.log {
   daily
+  size 500M
   missingok
   rotate 7
   compress
-  delaycompress
   notifempty
   copytruncate
   nocreate
