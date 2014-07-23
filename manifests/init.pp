@@ -6,7 +6,6 @@ class postgresql (
   ) {
 
   include filesystem::data
-  include monit
 
   $pg_dir = '/data/postgresql'
   $data_dir = "${pg_dir}/main"
